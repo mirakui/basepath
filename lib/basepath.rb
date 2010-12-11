@@ -25,7 +25,8 @@ module Basepath
   def find_base!
     paths_tried = []
     caller_line_before_require = caller.inject(false) do |was_in_require, line|
-      is_in_require = line.force_encoding(__ENCODING__) =~ /`(rescue in )?require'$/
+      line.force_encoding(__ENCODING__) if RUBY_VERSION >= '1.9'
+      is_in_require = line =~ /`(rescue in )?require'$/
       break line if was_in_require && !is_in_require
       is_in_require
     end
@@ -77,7 +78,7 @@ module Basepath
     $LOAD_PATH.unshift(*load_paths)
 
     # requires
-    loaded = caller(0).map { |s| s.force_encoding(__ENCODING__)[/\A(.+?)(?:\.rb)?:\d+(?::in `.*?')?\z/, 1] }.compact.uniq
+    loaded = caller(0).map { |s| (RUBY_VERSION >= '1.9' ? s.force_encoding(__ENCODING__) : s)[/\A(.+?)(?:\.rb)?:\d+(?::in `.*?')?\z/, 1] }.compact.uniq
     globs, names = base_conf[:requires].split("\n").partition { |s| s =~ /\*/ }
     names.map! { |s| const_expand! s, false }.concat \
       globs.map { |s| Dir[const_expand!(s).to_s + ".rb"] }\
